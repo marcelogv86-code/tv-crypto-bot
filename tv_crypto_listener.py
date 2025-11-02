@@ -311,34 +311,48 @@ def send_message(chat_id, text):
     }, timeout=20)
 
 def poll_updates():
-    offset=None
+    offset = None
     print("🤖 Bot activo. Escribe: BTC | ETH | SOL | XRP | DOGE | LTC | BNB | ADA (+ 1H/4H/1D/ALL)")
     while True:
         try:
-            params={"timeout":50}
-            if offset: params["offset"]=offset
-            resp=requests.get(f"{API_URL()}/getUpdates",params=params,timeout=60).json()
-            for upd in resp.get("result",[]):
-                offset=upd["update_id"]+1
-                msg=upd.get("message",{})
-                text=(msg.get("text") or "").strip()
-                chat_id=msg["chat"]["id"]
-                if not text: continue
+            params = {"timeout": 50}
+            if offset:
+                params["offset"] = offset
 
-                tokens=text.upper().split()
-                base=tokens[0]
+            resp = requests.get(f"{API_URL()}/getUpdates", params=params, timeout=60).json()
+
+            for upd in resp.get("result", []):
+                offset = upd["update_id"] + 1  # ✅ Marca mensaje como procesado
+                msg = upd.get("message", {})
+                text = (msg.get("text") or "").strip()
+                chat_id = msg["chat"]["id"]
+
+                print(f"📩 Mensaje recibido: {text} de {chat_id}")  # ✅ Se mostrará en logs Render
+
+                if not text:
+                    continue
+
+                tokens = text.upper().split()
+                base = tokens[0]
+
                 if base in SUPPORTED:
-                    mode="ALL"
-                    if len(tokens)>1 and tokens[1] in ("1H","4H","1D","ALL"):
-                        mode=tokens[1]
+                    mode = "ALL"
+                    if len(tokens) > 1 and tokens[1] in ("1H", "4H", "1D", "ALL"):
+                        mode = tokens[1]
                     try:
-                        message=build_message(base,mode)
-                        send_message(chat_id,message)
+                        message = build_message(base, mode)
+                        send_message(chat_id, message)
+                        print(f"✅ Respuesta enviada para {base}")
                     except Exception as e:
-                        send_message(chat_id,f"❌ Error: {type(e).__name__}")
+                        send_message(chat_id, f"❌ Error: {type(e).__name__}")
+                        print(f"⚠️ Error en build_message: {e}")
+                else:
+                    print(f"❌ Comando no válido: {text}")
+
         except Exception as e:
-            print("Error polling:",e)
+            print(f"⚠️ Error polling: {e}")
             time.sleep(3)
 
 if __name__=="__main__":
     poll_updates()
+
